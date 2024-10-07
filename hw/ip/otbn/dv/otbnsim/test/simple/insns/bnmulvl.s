@@ -1,0 +1,375 @@
+/* Copyright lowRISC contributors (OpenTitan project). */
+/* Licensed under the Apache License, Version 2.0, see LICENSE for details. */
+/* SPDX-License-Identifier: Apache-2.0 */
+
+.section .text.start
+/*
+  Testing each lane results in 30 results.
+  Thus only load one datatype at a time into w0 and w1
+  Results are ordered (increasing lane):
+  16b:  w2 to w17
+  32b:  w18 to w25
+  64b:  w26 to w29
+  128b: w30 and w31
+*/
+addi x2, x0, 0
+la     x3, vec16a
+bn.lid x2++, 0(x3)
+la     x3, vec16b
+bn.lid x2++, 0(x3)
+
+bn.mulvl.16H  w2, w0, w1, 0
+bn.mulvl.16H  w3, w0, w1, 1
+bn.mulvl.16H  w4, w0, w1, 2
+bn.mulvl.16H  w5, w0, w1, 3
+bn.mulvl.16H  w6, w0, w1, 4
+bn.mulvl.16H  w7, w0, w1, 5
+bn.mulvl.16H  w8, w0, w1, 6
+bn.mulvl.16H  w9, w0, w1, 7
+bn.mulvl.16H w10, w0, w1, 8
+bn.mulvl.16H w11, w0, w1, 9
+bn.mulvl.16H w12, w0, w1, 10
+bn.mulvl.16H w13, w0, w1, 11
+bn.mulvl.16H w14, w0, w1, 12
+bn.mulvl.16H w15, w0, w1, 13
+bn.mulvl.16H w16, w0, w1, 14
+bn.mulvl.16H w17, w0, w1, 15
+
+addi x2, x0, 0
+la     x3, vec32a
+bn.lid x2++, 0(x3)
+la     x3, vec32b
+bn.lid x2++, 0(x3)
+bn.mulvl.8S  w18, w0, w1, 0
+bn.mulvl.8S  w19, w0, w1, 1
+bn.mulvl.8S  w20, w0, w1, 2
+bn.mulvl.8S  w21, w0, w1, 3
+bn.mulvl.8S  w22, w0, w1, 4
+bn.mulvl.8S  w23, w0, w1, 5
+bn.mulvl.8S  w24, w0, w1, 6
+bn.mulvl.8S  w25, w0, w1, 7
+
+addi x2, x0, 0
+la     x3, vec64a
+bn.lid x2++, 0(x3)
+la     x3, vec64b
+bn.lid x2++, 0(x3)
+bn.mulvl.4D  w26, w0, w1, 0
+bn.mulvl.4D  w27, w0, w1, 1
+bn.mulvl.4D  w28, w0, w1, 2
+bn.mulvl.4D  w29, w0, w1, 3
+
+addi x2, x0, 0
+la     x3, vec128a
+bn.lid x2++, 0(x3)
+la     x3, vec128b
+bn.lid x2++, 0(x3)
+bn.mulvl.2Q  w30, w0, w1, 0
+bn.mulvl.2Q  w31, w0, w1, 1
+
+
+addi x2, x0, 0 /* reset x2*/
+addi x3, x0, 0 /* reset x3*/
+
+ecall
+
+.section .data
+/*
+  16bit vector vec16a for instruction mulvl
+  vec16a = [0, 1, 34, 58, 157, 23, 221, 159, 148, 62, 33, 129, 15, 158, 36, 137]
+  vec16a = 0x000000010022003a009d001700dd009f0094003e00210081000f009e00240089
+*/
+vec16a:
+  .word 0x00240089
+  .word 0x000f009e
+  .word 0x00210081
+  .word 0x0094003e
+  .word 0x00dd009f
+  .word 0x009d0017
+  .word 0x0022003a
+  .word 0x00000001
+
+/*
+  16bit vector vec16b for instruction mulvl
+  vec16b = [63206, 58121, 923, 588, 208, 223, 204, 180, 10, 1, 100, 192, 42, 161, 92, 47]
+  vec16b = 0xf6e6e309039b024c00d000df00cc00b4000a0001006400c0002a00a1005c002f
+*/
+vec16b:
+  .word 0x005c002f
+  .word 0x002a00a1
+  .word 0x006400c0
+  .word 0x000a0001
+  .word 0x00cc00b4
+  .word 0x00d000df
+  .word 0x039b024c
+  .word 0xf6e6e309
+
+/*
+  Result of 16bit mulvl index 0
+  res = [0, 47, 1598, 2726, 7379, 1081, 10387, 7473, 6956, 2914, 1551, 6063, 705, 7426, 1692, 6439]
+  res = 0x0000002f063e0aa61cd3043928931d311b2c0b62060f17af02c11d02069c1927
+*/
+
+/*
+  Result of 16bit mulvl index 1
+  res = [0, 92, 3128, 5336, 14444, 2116, 20332, 14628, 13616, 5704, 3036, 11868, 1380, 14536, 3312, 12604]
+  res = 0x0000005c0c3814d8386c08444f6c3924353016480bdc2e5c056438c80cf0313c
+*/
+
+/*
+  Result of 16bit mulvl index 2
+  res = [0, 161, 5474, 9338, 25277, 3703, 35581, 25599, 23828, 9982, 5313, 20769, 2415, 25438, 5796, 22057]
+  res = 0x000000a11562247a62bd0e778afd63ff5d1426fe14c15121096f635e16a45629
+*/
+
+/*
+  Result of 16bit mulvl index 3
+  res = [0, 42, 1428, 2436, 6594, 966, 9282, 6678, 6216, 2604, 1386, 5418, 630, 6636, 1512, 5754]
+  res = 0x0000002a0594098419c203c624421a1618480a2c056a152a027619ec05e8167a
+*/
+
+/*
+  Result of 16bit mulvl index 4
+  res = [0, 192, 6528, 11136, 30144, 4416, 42432, 30528, 28416, 11904, 6336, 24768, 2880, 30336, 6912, 26304]
+  res = 0x000000c019802b8075c01140a5c077406f002e8018c060c00b4076801b0066c0
+*/
+
+/*
+  Result of 16bit mulvl index 5
+  res = [0, 100, 3400, 5800, 15700, 2300, 22100, 15900, 14800, 6200, 3300, 12900, 1500, 15800, 3600, 13700]
+  res = 0x000000640d4816a83d5408fc56543e1c39d018380ce4326405dc3db80e103584
+*/
+
+/*
+  Result of 16bit mulvl index 6
+  res = [0, 1, 34, 58, 157, 23, 221, 159, 148, 62, 33, 129, 15, 158, 36, 137]
+  res = 0x000000010022003a009d001700dd009f0094003e00210081000f009e00240089
+*/
+
+/*
+  Result of 16bit mulvl index 7
+  res = [0, 10, 340, 580, 1570, 230, 2210, 1590, 1480, 620, 330, 1290, 150, 1580, 360, 1370]
+  res = 0x0000000a01540244062200e608a2063605c8026c014a050a0096062c0168055a
+*/
+
+/*
+  Result of 16bit mulvl index 8
+  res = [0, 180, 6120, 10440, 28260, 4140, 39780, 28620, 26640, 11160, 5940, 23220, 2700, 28440, 6480, 24660]
+  res = 0x000000b417e828c86e64102c9b646fcc68102b9817345ab40a8c6f1819506054
+*/
+
+/*
+  Result of 16bit mulvl index 9
+  res = [0, 204, 6936, 11832, 32028, 4692, 45084, 32436, 30192, 12648, 6732, 26316, 3060, 32232, 7344, 27948]
+  res = 0x000000cc1b182e387d1c1254b01c7eb475f031681a4c66cc0bf47de81cb06d2c
+*/
+
+/*
+  Result of 16bit mulvl index 10
+  res = [0, 223, 7582, 12934, 35011, 5129, 49283, 35457, 33004, 13826, 7359, 28767, 3345, 35234, 8028, 30551]
+  res = 0x000000df1d9e328688c31409c0838a8180ec36021cbf705f0d1189a21f5c7757
+*/
+
+/*
+  Result of 16bit mulvl index 11
+  res = [0, 208, 7072, 12064, 32656, 4784, 45968, 33072, 30784, 12896, 6864, 26832, 3120, 32864, 7488, 28496]
+  res = 0x000000d01ba02f207f9012b0b3908130784032601ad068d00c3080601d406f50
+*/
+
+/*
+  Result of 16bit mulvl index 12
+  res = [0, 588, 19992, 34104, 26780, 13524, 64412, 27956, 21488, 36456, 19404, 10316, 8820, 27368, 21168, 15020]
+  res = 0x0000024c4e188538689c34d4fb9c6d3453f08e684bcc284c22746ae852b03aac
+*/
+
+/*
+  Result of 16bit mulvl index 13
+  res = [0, 923, 31382, 53534, 13839, 21229, 7375, 15685, 5532, 57226, 30459, 53531, 13845, 14762, 33228, 60915]
+  res = 0x0000039b7a96d11e360f52ed1ccf3d45159cdf8a76fbd11b361539aa81ccedf3
+*/
+
+/*
+  Result of 16bit mulvl index 14
+  res = [0, 58121, 10034, 28682, 15493, 26063, 65221, 663, 16692, 64558, 17449, 26505, 19847, 8078, 60740, 32721]
+  res = 0x0000e3092732700a3c8565cffec502974134fc2e442967894d871f8eed447fd1
+*/
+
+/*
+  Result of 16bit mulvl index 15
+  res = [0, 63206, 51852, 61468, 27406, 11946, 9358, 22746, 48376, 52148, 54182, 27110, 30586, 25076, 47192, 8470]
+  res = 0x0000f6e6ca8cf01c6b0e2eaa248e58dabcf8cbb4d3a669e6777a61f4b8582116
+*/
+
+/*
+  32bit vector vec32a for instruction mulvl
+  vec32a = [0, 1, 44913, 9734, 23276, 65251, 13010, 40903]
+  vec32a = 0x00000000000000010000af710000260600005aec0000fee3000032d200009fc7
+*/
+vec32a:
+  .word 0x00009fc7
+  .word 0x000032d2
+  .word 0x0000fee3
+  .word 0x00005aec
+  .word 0x00002606
+  .word 0x0000af71
+  .word 0x00000001
+  .word 0x00000000
+
+/*
+  32bit vector vec32b for instruction mulvl
+  vec32b = [4140082361, 1869666356, 636760, 207841, 59661, 52504, 947, 30691]
+  vec32b = 0xf6c4a4b96f70d8340009b75800032be10000e90d0000cd18000003b3000077e3
+*/
+vec32b:
+  .word 0x000077e3
+  .word 0x000003b3
+  .word 0x0000cd18
+  .word 0x0000e90d
+  .word 0x00032be1
+  .word 0x0009b758
+  .word 0x6f70d834
+  .word 0xf6c4a4b9
+
+/*
+  Result of 32bit mulvl index 0
+  res = [0, 30691, 1378424883, 298746194, 714363716, 2002618441, 399289910, 1255353973]
+  res = 0x00000000000077e35229183311ce81522a945344775d884917ccae364ad32e75
+*/
+
+/*
+  Result of 32bit mulvl index 1
+  res = [0, 947, 42532611, 9218098, 22042372, 61792697, 12320470, 38735141]
+  res = 0x00000000000003b30288ff03008ca8320150570403aee1b900bbfed6024f0d25
+*/
+
+/*
+  Result of 32bit mulvl index 2
+  res = [0, 52504, 2358112152, 511073936, 1222083104, 3425938504, 683077040, 2147571112]
+  res = 0x000000000000cd188c8def981e765e9048d78220cc33ac4828b6edb0800155a8
+*/
+
+/*
+  Result of 32bit mulvl index 3
+  res = [0, 59661, 2679554493, 580740174, 1388669436, 3892939911, 776189610, 2440313883]
+  res = 0x000000000000e90d9fb6c1bd229d644e52c569fce8098c872e43b6aa91743c1b
+*/
+
+/*
+  Result of 32bit mulvl index 4
+  res = [0, 207841, 744828241, 2023124294, 542739820, 676931203, 2704011410, 4206353127]
+  res = 0x0000000000032be12c652d5178966d4620598d6c28592683a12bf092fab7dae7
+*/
+
+/*
+  Result of 32bit mulvl index 5
+  res = [0, 636760, 2828998104, 1903254544, 1936323872, 2894521096, 3989280304, 275590504]
+  res = 0x000000000009b758a89f15d871715c107369f520ac86e308edc79630106d2d68
+*/
+
+/*
+  Result of 32bit mulvl index 6
+  res = [0, 1869666356, 1419442932, 1555876152, 1745459184, 3348319772, 1959494312, 3070254188]
+  res = 0x000000006f70d834549afaf45cbcc938680997f0c7934e1c74cb82a8b7005c6c
+*/
+
+/*
+  Result of 32bit mulvl index 7
+  res = [0, 4140082361, 1499933865, 4178530902, 2670781580, 3956121099, 3581624770, 4113232591]
+  res = 0x00000000f6c4a4b959672ca9f90f52569f30e48cebcd9e0bd57b41c2f52af2cf
+*/
+
+/*
+  64bit vector vec64a for instruction mulvl
+  vec64a = [0, 1, 2417127611, 30955]
+  vec64a = 0x0000000000000000000000000000000100000000901270bb00000000000078eb
+*/
+vec64a:
+  .word 0x000078eb
+  .word 0x00000000
+  .word 0x901270bb
+  .word 0x00000000
+  .word 0x00000001
+  .word 0x00000000
+  .word 0x00000000
+  .word 0x00000000
+
+/*
+  64bit vector vec64b for instruction mulvl
+  vec64b = [17614515565450322005, 5145075550695678108, 45867244350, 328746167066219]
+  vec64b = 0xf4735494c14160554766faf41dc3609c0000000aade69b3e00012afe2e825e6b
+*/
+vec64b:
+  .word 0x2e825e6b
+  .word 0x00012afe
+  .word 0xade69b3e
+  .word 0x0000000a
+  .word 0x1dc3609c
+  .word 0x4766faf4
+  .word 0xc1416055
+  .word 0xf4735494
+
+/*
+  Result of 64bit mulvl index 0
+  res = [0, 328746167066219, 9489707064164861993, 10176337601534809145]
+  res = 0x000000000000000000012afe2e825e6b83b2364bd60fc8298d399d21cdeed439
+*/
+
+/*
+  Result of 64bit mulvl index 1
+  res = [0, 45867244350, 186518316611438154, 1419820548854250]
+  res = 0x00000000000000000000000aade69b3e0296a56bb5ba864a00050b51bb7591ea
+*/
+
+/*
+  Result of 64bit mulvl index 2
+  res = [0, 5145075550695678108, 3164934787780825588, 15072083450156732212]
+  res = 0x00000000000000004766faf41dc3609c2bec1b6bc2f3d1f4d12acc0ae7a2cf34
+*/
+
+/*
+  Result of 64bit mulvl index 3
+  res = [0, 17614515565450322005, 11847345534360653335, 8467997807790999047]
+  res = 0x0000000000000000f4735494c1416055a46a39fe5ae08e1775845f240c2b4607
+*/
+
+/*
+  128bit vector vec128a for instruction mulvl
+  vec128a = [15163934324283487979, 59768885155910817024740993528977806]
+  vec128a = 0x0000000000000000d2711ded0c4536eb000b82d563bae0bc42c1cf008893598e
+*/
+vec128a:
+  .word 0x8893598e
+  .word 0x42c1cf00
+  .word 0x63bae0bc
+  .word 0x000b82d5
+  .word 0x0c4536eb
+  .word 0xd2711ded
+  .word 0x00000000
+  .word 0x00000000
+
+/*
+  128bit vector vec128b for instruction mulvl
+  vec128b = [86676785931336461155, 2613]
+  vec128b = 0x0000000000000004b2e1cd923de2ab6300000000000000000000000000000a35
+*/
+vec128b:
+  .word 0x00000a35
+  .word 0x00000000
+  .word 0x00000000
+  .word 0x00000000
+  .word 0x3de2ab63
+  .word 0xb2e1cd92
+  .word 0x00000004
+  .word 0x00000000
+
+/*
+  Result of 128bit mulvl index 0
+  res = [39623360389352754089127, 156176096912394964885648216091219007078]
+  res = 0x0000000000000863fc96748e3e798ca7757e6c12f277e1956435e07208011666
+*/
+
+/*
+  Result of 128bit mulvl index 1
+  res = [293513988539949706980763568066538321377, 15209774316259874084367624368732863466]
+  res = 0xdcd0bceb1d4df195eeebbe1474e935e10b714bc55d85267b79c9dfd723297bea
+*/
