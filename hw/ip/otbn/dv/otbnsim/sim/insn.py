@@ -8,7 +8,14 @@ from .constants import ErrBits
 from .flags import FlagReg
 from .isa import (OTBNInsn, RV32RegReg, RV32RegImm,
                   RV32ImmShift, insn_for_mnemonic, logical_byte_shift,
-                  extract_quarter_word)
+                  extract_quarter_word,
+                  extract_simd_element_size,
+                  extract_sub_word,
+                  # extract_sub_word_signed,
+                  logical_bit_shift,
+                  # from_2s_complement_sized,
+                  to_2s_complement_sized
+                  )
 from .state import OTBNState
 
 
@@ -1272,6 +1279,346 @@ class BNWSRW(OTBNInsn):
         state.wsrs.write_at_idx(self.wsr, val)
 
 
+class BNADDV(OTBNInsn):
+    insn = insn_for_mnemonic('bn.addv', 5)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+        self.datatype = op_vals['datatype']
+        self.vec_flag_group = op_vals['vec_flag_group']
+
+    def execute(self, state: OTBNState) -> None:
+        # Flag groups are not implemented!
+        vec_a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        vec_b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+        size = extract_simd_element_size(self.datatype)
+
+        result = 0
+        for elem in range(256 // size - 1, -1, -1):
+            elem_a = extract_sub_word(vec_a, size, elem)
+            elem_b = extract_sub_word(vec_b, size, elem)
+
+            elem_c = elem_a + elem_b
+
+            elem_c = elem_c & ((1 << size) - 1)
+            result = (result << size) | elem_c
+
+        result = result & ((1 << 256) - 1)
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
+
+class BNADDVM(OTBNInsn):
+    insn = insn_for_mnemonic('bn.addvm', 5)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+        self.datatype = op_vals['datatype']
+        self.vec_flag_group = op_vals['vec_flag_group']
+
+    def execute(self, state: OTBNState) -> None:
+        # Flag groups are not implemented!
+        vec_a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        vec_b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+        size = extract_simd_element_size(self.datatype)
+
+        result = 0
+        mod_val = state.wsrs.MOD.read_unsigned()  # CHECK: do only extract size bits?
+        for elem in range(256 // size - 1, -1, -1):
+            elem_a = extract_sub_word(vec_a, size, elem)
+            elem_b = extract_sub_word(vec_b, size, elem)
+
+            elem_c = elem_a + elem_b
+
+            if elem_c >= mod_val:
+                elem_c -= mod_val
+
+            elem_c = elem_c & ((1 << size) - 1)
+            result = (result << size) | elem_c
+
+        result = result & ((1 << 256) - 1)
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
+
+class BNSUBV(OTBNInsn):
+    insn = insn_for_mnemonic('bn.subv', 5)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+        self.datatype = op_vals['datatype']
+        self.vec_flag_group = op_vals['vec_flag_group']
+
+    def execute(self, state: OTBNState) -> None:
+        # Flag groups are not implemented!
+        vec_a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        vec_b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+        size = extract_simd_element_size(self.datatype)
+
+        result = 0
+        for elem in range(256 // size - 1, -1, -1):
+            elem_a = extract_sub_word(vec_a, size, elem)
+            elem_b = extract_sub_word(vec_b, size, elem)
+
+            elem_c = elem_a - elem_b
+
+            elem_c = elem_c & ((1 << size) - 1)
+            result = (result << size) | elem_c
+
+        result = result & ((1 << 256) - 1)
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
+
+class BNSUBVM(OTBNInsn):
+    insn = insn_for_mnemonic('bn.subvm', 5)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+        self.datatype = op_vals['datatype']
+        self.vec_flag_group = op_vals['vec_flag_group']
+
+    def execute(self, state: OTBNState) -> None:
+        # Flag groups are not implemented!
+        vec_a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        vec_b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+        size = extract_simd_element_size(self.datatype)
+
+        result = 0
+        mod_val = state.wsrs.MOD.read_unsigned()  # CHECK: do only extract size bits?
+        for elem in range(256 // size - 1, -1, -1):
+            elem_a = extract_sub_word(vec_a, size, elem)
+            elem_b = extract_sub_word(vec_b, size, elem)
+
+            elem_c = elem_a - elem_b
+
+            if elem_c < 0:
+                elem_c += mod_val
+
+            elem_c = elem_c & ((1 << size) - 1)
+            result = (result << size) | elem_c
+
+        result = result & ((1 << 256) - 1)
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
+
+class BNMULV(OTBNInsn):
+    insn = insn_for_mnemonic('bn.mulv', 4)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.datatype = op_vals['datatype']
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+
+    def execute(self, state: OTBNState) -> None:
+        vec_a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        vec_b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+        size = extract_simd_element_size(self.datatype)
+
+        # TODO: match HW implementation regarding cycles
+        result = 0
+        for elem in range(256 // size - 1, -1, -1):
+            elem_a = extract_sub_word(vec_a, size, elem)
+            elem_b = extract_sub_word(vec_b, size, elem)
+
+            elem_c = elem_a * elem_b
+
+            elem_c = elem_c & ((1 << size) - 1)
+            result = (result << size) | elem_c
+
+        result = result & ((1 << 256) - 1)
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
+
+class BNMULVL(OTBNInsn):
+    insn = insn_for_mnemonic('bn.mulvl', 5)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.datatype = op_vals['datatype']
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+        self.lane = op_vals['lane']
+
+    def execute(self, state: OTBNState) -> None:
+        vec_a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        vec_b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+        size = extract_simd_element_size(self.datatype)
+
+        # TODO: match HW implementation regarding cycles
+        result = 0
+        lane_elem = extract_sub_word(vec_b, size, self.lane)
+        for elem in range(256 // size - 1, -1, -1):
+            elem_a = extract_sub_word(vec_a, size, elem)
+
+            elem_c = elem_a * lane_elem
+
+            elem_c = elem_c & ((1 << size) - 1)
+            result = (result << size) | elem_c
+
+        result = result & ((1 << 256) - 1)
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
+
+class BNMULVM(OTBNInsn):
+    insn = insn_for_mnemonic('bn.mulvm', 4)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.datatype = op_vals['datatype']
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+
+    def execute(self, state: OTBNState) -> None:
+        vec_a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        vec_b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+        size = extract_simd_element_size(self.datatype)
+
+        # TODO: match HW implementation regarding cycles
+        result = 0
+        mod_val = state.wsrs.MOD.read_unsigned()  # CHECK: do only extract size bits?
+        for elem in range(256 // size - 1, -1, -1):
+            elem_a = extract_sub_word(vec_a, size, elem)
+            elem_b = extract_sub_word(vec_b, size, elem)
+
+            elem_c = elem_a * elem_b
+
+            # TODO: match HW implementation
+            elem_c = elem_c % mod_val
+
+            elem_c = elem_c & ((1 << size) - 1)
+            result = (result << size) | elem_c
+
+        result = result & ((1 << 256) - 1)
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
+
+class BNMULVML(OTBNInsn):
+    insn = insn_for_mnemonic('bn.mulvml', 5)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.datatype = op_vals['datatype']
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+        self.lane = op_vals['lane']
+
+    def execute(self, state: OTBNState) -> None:
+        vec_a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        vec_b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+        size = extract_simd_element_size(self.datatype)
+
+        # TODO: match HW implementation regarding cycles
+        result = 0
+        mod_val = state.wsrs.MOD.read_unsigned()  # CHECK: do only extract size bits?
+        lane_elem = extract_sub_word(vec_b, size, self.lane)
+        for elem in range(256 // size - 1, -1, -1):
+            elem_a = extract_sub_word(vec_a, size, elem)
+
+            elem_c = elem_a * lane_elem
+
+            # TODO: match HW implementation
+            elem_c = elem_c % mod_val
+
+            elem_c = elem_c & ((1 << size) - 1)
+            result = (result << size) | elem_c
+
+        result = result & ((1 << 256) - 1)
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
+
+class BNTRN1(OTBNInsn):
+    insn = insn_for_mnemonic('bn.trn1', 4)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.datatype = op_vals['datatype']
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+
+    def execute(self, state: OTBNState) -> None:
+        vec_a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        vec_b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+        size = extract_simd_element_size(self.datatype)
+
+        vec_c = 0
+        for elem in range(0, 256 // size, 2):
+            elem_a = extract_sub_word(vec_a, size, elem)
+            elem_b = extract_sub_word(vec_b, size, elem)
+
+            vec_c = vec_c | ((elem_a) << (elem * size))
+            vec_c = vec_c | ((elem_b) << ((elem + 1) * size))
+
+        state.wdrs.get_reg(self.wrd).write_unsigned(vec_c)
+
+
+class BNTRN2(OTBNInsn):
+    insn = insn_for_mnemonic('bn.trn2', 4)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.datatype = op_vals['datatype']
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+
+    def execute(self, state: OTBNState) -> None:
+        vec_a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        vec_b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+        size = extract_simd_element_size(self.datatype)
+
+        vec_c = 0
+        for elem in range(0, 256 // size, 2):
+            elem_a = extract_sub_word(vec_a, size, elem + 1)
+            elem_b = extract_sub_word(vec_b, size, elem + 1)
+
+            vec_c = vec_c | ((elem_a) << (elem * size))
+            vec_c = vec_c | ((elem_b) << ((elem + 1) * size))
+
+        state.wdrs.get_reg(self.wrd).write_unsigned(vec_c)
+
+
+class BNSHV(OTBNInsn):
+    insn = insn_for_mnemonic('bn.shv', 5)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.datatype = op_vals['datatype']
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs']
+        self.shift_type = op_vals['shift_type']
+        self.shift_bits = op_vals['shift_bits']
+
+    def execute(self, state: OTBNState) -> None:
+        vec_a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        size = extract_simd_element_size(self.datatype)
+
+        vec_c = 0
+        for elem in range(256 // size):
+            elem_a = extract_sub_word(vec_a, size, elem)
+
+            a_shifted = logical_bit_shift(elem_a, size, self.shift_type, self.shift_bits)
+
+            vec_c = vec_c | (a_shifted << (elem * size))
+
+        state.wdrs.get_reg(self.wrd).write_unsigned(vec_c)
+
+
 INSN_CLASSES = [
     ADD, ADDI, LUI, SUB, SLL, SLLI, SRL, SRLI, SRA, SRAI,
     AND, ANDI, OR, ORI, XOR, XORI,
@@ -1290,5 +1637,12 @@ INSN_CLASSES = [
     BNCMP, BNCMPB,
     BNLID, BNSID,
     BNMOV, BNMOVR,
-    BNWSRR, BNWSRW
+    BNWSRR, BNWSRW,
+
+    BNADDV, BNADDVM,  # forseen in ISA: BNADDVC, BNADDVI
+    BNSUBV, BNSUBVM,  # forseen in ISA: BNSUBVC, BNSUBVI
+    BNMULV, BNMULVL,
+    BNMULVM, BNMULVML,
+    BNTRN1, BNTRN2,
+    BNSHV
 ]
