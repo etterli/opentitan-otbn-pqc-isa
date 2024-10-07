@@ -9,6 +9,8 @@ The base subset (described first) is similar to RISC-V's RV32I instruction set.
 It also includes a hardware call stack and hardware loop instructions.
 The big number subset is designed to operate on 256b WDRs.
 It doesn't include any control flow instructions, and just supports load/store, logical and arithmetic operations.
+For some of the logical and arithmetic operations exist packed SIMD variants.
+These instructions operate on sub words of the 256b WDRs.
 
 In the instruction documentation that follows, each instruction has a syntax example.
 For example, the `SW` instruction has syntax:
@@ -69,11 +71,23 @@ def from_2s_complement(n: int) -> int:
     assert 0 <= n < (1 << 32)
     return n if n < (1 << 31) else n - (1 << 32)
 
+def from_2s_complement_sized(value: int, size: int) -> int:
+    '''Interpret the unsigned value as 2's complement of signed-`size` integer'''
+    assert (size % 8) == 0
+    assert value < (1 << size)
+    b = value.to_bytes(size // 8, byteorder="little", signed=False)
+    return int.from_bytes(b, byteorder="little", signed=True)
 
 def to_2s_complement(n: int) -> int:
     '''Interpret the bits of signed integer n as a 32-bit unsigned integer'''
     assert -(1 << 31) <= n < (1 << 31)
     return (1 << 32) + n if n < 0 else n
+
+def to_2s_complement_sized(value: int, size: int) -> int:
+    '''Interpret the signed value as a 2's complement of unsigned-`size` integer'''
+    assert (size % 8) == 0
+    assert -(1 << size) <= value < (1 << size)
+    return (1 << size) + value if value < 0 else value
 
 def logical_byte_shift(value: int, shift_type: int, shift_bytes: int) -> int:
     '''Logical shift value by shift_bytes to the left or right.
@@ -95,11 +109,65 @@ def logical_byte_shift(value: int, shift_type: int, shift_bytes: int) -> int:
     shifted = value << shift_bits if shift_type == 0 else value >> shift_bits
     return shifted & mask256
 
+def logical_bit_shift(value: int, size: int, shift_type: int, shift_bits: int) -> int:
+    '''Logical shift value by shift_bits to the left or right.
+
+    value should be an unsigned `size`-bit value. shift_type should be 0 (shift
+    left) or 1 (shift_right), matching the encoding of the big number
+    instructions. shift_bits should be a non-negative number of bits to shift
+    by.
+
+    Returns an unsigned `size`-bit value, truncating on an overflowing left shift.
+    '''
+    mask = (1 << size) - 1
+    assert 0 <= value <= mask
+    assert 0 <= shift_type <= 1
+    assert 0 <= shift_bits
+
+    shifted = value << shift_bits if shift_type == 0 else value >> shift_bits
+    return shifted & mask
+
 def extract_quarter_word(value: int, qwsel: int) -> int:
     '''Extract a 64-bit quarter word from a 256-bit value.'''
     assert 0 <= value < (1 << 256)
     assert 0 <= qwsel <= 3
     return (value >> (qwsel * 64)) & ((1 << 64) - 1)
+
+def extract_sub_word(value: int, size: int, index: int) -> int:
+    '''Extract a `size`-bit word at index `index` from a 256-bit value.'''
+    assert 0 <= value < (1 << 256)
+    assert 0 <= index <= 256 // size
+    return (value >> (index * size)) & ((1 << size) - 1)
+
+def extract_sub_word_signed(value: int, size: int, index: int) -> int:
+    '''Extract a `size`-bit word at index `index` from a 256-bit value and
+    interprets it as signed integer of `size`'''
+    unsigned = extract_sub_word(value, size, index)
+    return from_2s_complement_sized(unsigned, size)
+
+def extract_simd_element_size(datatype: int) -> int:
+    '''Extract the bit size of a SIMD element from the given datatype encoding.    
+    The SIMD instructions operate on different element sizes.
+    The bitwidth is defined as:
+    Encoded Value | size name | size in bits
+    0             | .16H      |  16
+    1             | .8S       |  32
+    2             | .4D       |  64
+    3             | .2Q       | 128
+    '''
+    match datatype:
+        case 0:
+            return 16
+        case 1:
+            return 32
+        case 2:
+            return 64
+        case 3:
+            return 128
+        case _:
+            sys.stderr.write('The datatype ({}) for SIMD elements is '
+                             'unkown!.\n'.format(datatype))
+            sys.exit(1)
 ```
 
 # Errors
