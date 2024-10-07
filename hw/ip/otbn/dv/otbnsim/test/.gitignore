@@ -1,0 +1,2 @@
+# all golden vectors from bn_simd_testvec_gen.py
+*.golden
