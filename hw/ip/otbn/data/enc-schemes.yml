@@ -147,6 +147,11 @@ custom3:
   parents:
     - rv(opcode=b11110)
 
+# A partial scheme for custom instructions with opcode b10110
+custom4:
+  parents:
+    - rv(opcode=b10110)
+
 # A partial scheme for instructions that produce a dest WDR.
 wrd:
   fields:
@@ -184,6 +189,12 @@ funct2:
 indirect:
   fields:
     indirect: 31
+
+# A partial scheme for the datatype used by bn.SIMD instructions. Specifies the
+# width of a vector element
+bnvdt:
+  fields:
+    dt: 29-28
 
 # A specialised encoding for the loop instruction (only one source, no
 # destination)
@@ -366,3 +377,72 @@ wcsr:
     fixed:
       bits: 30-28
       value: bxxx
+
+# Used by bn.addv, bn.addvm, bn.addvc, bn.subv, bn.subvm and bn.subvc
+bnva:
+  parents:
+    - custom4
+    - wdr3
+    - funct3
+    - bnvdt
+    - fg
+  fields:
+    sub: 30
+    mod: 27
+    car: 26
+    fixed:
+      bits: 25
+      value: bx
+
+# Used by bn.addvi
+# not implemented yet
+bnvai:
+  parents:
+    - custom4
+    - wrd
+    - funct3
+    - bnvdt
+    - fg
+  fields:
+    sub: 30
+    imm: 27-20
+    wrs: 19-15
+
+# Used by bn.mulv
+bnvm:
+  parents:
+    - custom4
+    - wdr3
+    - funct3
+  fields:
+    lane: 31-28
+    dt: 27-26
+    use_lane: 25
+
+# Used by bn.trn1 and bn.trn2
+bnvtrn:
+  parents:
+    - custom4
+    - wdr3
+    - funct3
+    - bnvdt
+  fields:
+    odd: 30
+    fixed:
+      bits: 31,27-25
+      value: bxxxx
+
+# Used by bn.shv
+bnvsh:
+  parents:
+    - custom4
+    - wrd
+    - funct3
+    - bnvdt
+  fields:
+    shift_type: 30
+    shift_bits: 26-20
+    wrs: 19-15
+    fixed:
+      bits: 31,27
+      value: bxx

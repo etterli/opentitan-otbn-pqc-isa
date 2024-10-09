@@ -957,3 +957,423 @@
   lsu:
     type: wsr-store
     target: [wsr]
+
+- mnemonic: bn.addv
+  synopsis: Add vector elementwise
+  operands: &bn-addv-operands
+    - &bn-vdt
+      name: datatype
+      abbrev: dt
+      type: enum(.16H,.8S,.4D,.2Q)
+      doc: |
+        Select the data type of the vector elements in WRSs.
+
+        Valid values:
+        - `.16H`: interprets the WDRs as 16 16-bit registers
+        - `.8S`: interprets the WDRs as 8 32-bit registers
+        - `.4D`: interprets the WDRs as 4 64-bit registers
+        - `.2Q`: interprets the WDRs as 2 128-bit registers
+    - name: wrd
+      doc: Name of the destination WDR
+    - name: wrs1
+      doc: Name of the first source WDR
+    - name: wrs2
+      doc: Name of the second source WDR
+    - &bn-vec-flag-group-operand
+      name: vec_flag_group
+      abbrev: vfg
+      type: uimm1
+      doc: Vector flag group to use. Defaults to 0.
+  syntax: &bn-addv-syntax |
+    <datatype> <wrd>, <wrs1>, <wrs2>[, FG<vec_flag_group>]
+  glued-ops: true
+  doc: |
+    Add two WDR registers interpreted as vectors elementwise.
+
+    The values in `<wrs1>` and `<wrs2>` are interpreted as vectors with unsigned elements of size given by `<datatype>`.
+    The elements are individually summed.
+
+    Each result element is truncated to the datatype size (depending on `<datatype>`) and stored in `<wrd>`.
+  note: |
+    Datatypes `.4D` and `.2Q` are not implemented.
+    Vector flag group is not implemented yet.
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs1, wrs2]
+  encoding:
+    scheme: bnva
+    mapping:
+      fg: vec_flag_group
+      sub: b0
+      dt: datatype
+      mod: b0
+      car: b0
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b000
+      wrd: wrd
+
+- mnemonic: bn.addvm
+  synopsis: Pseudo-Module Add vector elementwise
+  operands: *bn-addv-operands
+  syntax: *bn-addv-syntax
+  glued-ops: true
+  doc: |
+    Add two WDR registers interpreted as vectors elementwise and reduce the results by MOD.
+
+    The values in `<wrs1>` and `<wrs2>` are interpreted as vectors with unsigned elements of size given by `<datatype>`.
+    The elements are individually summed.
+    If the individual result is equal or larger than MOD, MOD is subtracted from it.
+
+    Each result element is truncated to the datatype size (depending on `<datatype>`) and stored in `<wrd>`.
+
+    This operation correctly implements addition modulo MOD, providing that the intermediate result is less than `2 * MOD`.
+    The intermediate result is small enough if both inputs are less than `MOD`.
+  note: |
+    Datatypes `.4D` and `.2Q` are not implemented.
+    Vector flag group is not implemented yet.
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs1, wrs2, mod]
+  encoding:
+    scheme: bnva
+    mapping:
+      fg: vec_flag_group
+      sub: b0
+      dt: datatype
+      mod: b1
+      car: b0
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b000
+      wrd: wrd
+
+# mnemonic: bn.addvc -> not implemented yet
+
+# mnemonic: bn.addvi -> not implemented yet
+
+- mnemonic: bn.subv
+  synopsis: Subtract vector elementwise
+  operands: &bn-subv-operands
+    - *bn-vdt
+    - name: wrd
+      doc: Name of the destination WDR
+    - name: wrs1
+      doc: Name of the first source WDR
+    - name: wrs2
+      doc: Name of the second source WDR
+    - *bn-vec-flag-group-operand
+  syntax: &bn-subv-syntax |
+    <datatype> <wrd>, <wrs1>, <wrs2>[, FG<vec_flag_group>]
+  glued-ops: true
+  doc: |
+    Subtracts the second WDR vector elements from the first's one, writes the results to the destination WDR.
+
+    The values in `<wrs1>` and `<wrs2>` are interpreted as vectors with unsigned elements of size given by `<datatype>`.
+    The elements are individually subtracted.
+
+    Each result is truncated to the datatype size (depending on `<datatype>`) and stored in `<wrd>`.
+  note: |
+    Datatypes `.4D` and `.2Q` are not implemented.
+    Vector flag group is not implemented yet.
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs1, wrs2]
+  encoding:
+    scheme: bnva
+    mapping:
+      fg: vec_flag_group
+      sub: b1
+      dt: datatype
+      mod: b0
+      car: b0
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b000
+      wrd: wrd
+
+- mnemonic: bn.subvm
+  synopsis: Pseudo-Module Subtract vector elementwise
+  operands: *bn-subv-operands
+  syntax: *bn-subv-syntax
+  glued-ops: true
+  doc: |
+    Subtracts the `<wrs2>` vector elements from `<wrs1>`, modulo the `MOD` WSR.
+    Writes the results to the destination WDR.
+
+    The values in `<wrs1>` and `<wrs2>` are interpreted as vectors with unsigned elements of size given by `<datatype>`.
+    The elements are individually subtracted.
+    The intermediate results are treated as a signed number (of width `len(datatype) + 1`).
+    If these are negative, `MOD` is added to them.
+    The result is then truncated to the datatype size (depending on `<datatype>`) and stored in `<wrd>`.
+
+    Each result element is truncated to the datatype size (depending on `<datatype>`) and stored in `<wrd>`.
+
+    This operation correctly implements subtraction modulo `MOD`, providing that the intermediate result at least `-MOD` and at most `MOD - 1`.
+    This is guaranteed if both inputs are less than `MOD`.
+  note: |
+    Datatypes `.4D` and `.2Q` are not implemented.
+    Vector flag group is not implemented yet.
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs1, wrs2, mod]
+  encoding:
+    scheme: bnva
+    mapping:
+      fg: vec_flag_group
+      sub: b1
+      dt: datatype
+      mod: b1
+      car: b0
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b000
+      wrd: wrd
+
+# mnemonic: bn.subvc -> not implemented yet
+
+# mnemonic: bn.subvi -> not implemented yet
+
+- mnemonic: bn.mulv
+  synopsis: Elementwise vector multiplication
+  operands: &bn-mulv-operands
+    - *bn-vdt
+    - name: wrd
+      doc: Destination WDR
+    - name: wrs1
+      doc: First source WDR
+    - name: wrs2
+      doc: Second source WDR
+  syntax: &bn-mulv-syntax |
+    <datatype> <wrd>, <wrs1>, <wrs2>
+  glued-ops: true
+  doc: |
+    Multiply two WDR registers interpreted as vectors elementwise.
+
+    The values in `<wrs1>` and `<wrs2>` are interpreted as vectors with elements
+    of size depending on `datatype` and are considered as unsigned.
+
+    Each result element is truncated to the datatype size (depending on `<datatype>`) and stored in `<wrd>`.
+
+    Flags are not used or saved.
+  note: |
+    Datatypes `.4D` and `.2Q` are not implemented.
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs1, wrs2]
+  encoding:
+    scheme: bnvm
+    mapping:
+      lane: b0000
+      dt: datatype
+      use_lane: b0
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b011
+      wrd: wrd
+
+- mnemonic: bn.mulvl
+  synopsis: Elementwise vector multiplication with fixed lane
+  operands: &bn-mulvl-operands
+    - *bn-vdt
+    - name: wrd
+      doc: Destination WDR
+    - name: wrs1
+      doc: First source WDR
+    - name: wrs2
+      doc: Second source WDR
+    - name: lane
+      doc: Select the lane of the `<wrs2>` to multiply `<wrs1>` with.
+      type: uimm
+  syntax: &bn-mulvl-syntax |
+    <datatype> <wrd>, <wrs1>, <wrs2>, <lane>
+  glued-ops: true
+  doc: |
+    Multiply each vector element of `<wrs1>` with element `<lane>` of `<wrs2>`.
+
+    The values in `<wrs1>` and `<wrs2>` are interpreted as vectors with elements
+    of size depending on `datatype` and are considered as unsigned.
+
+    Each result element is truncated to the datatype size (depending on `<datatype>`) and stored in `<wrd>`.
+
+    Flags are not used or saved.
+  note: |
+    Datatypes `.4D` and `.2Q` are not implemented.
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs1, wrs2]
+  encoding:
+    scheme: bnvm
+    mapping:
+      lane: lane
+      dt: datatype
+      use_lane: b1
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b011
+      wrd: wrd
+
+- mnemonic: bn.mulvm
+  synopsis: Pseudo-Modulo elementwise vector multiplication
+  operands: *bn-mulv-operands
+  syntax: *bn-mulv-syntax
+  glued-ops: true
+  doc: |
+    Multiply two WDR registers interpreted as vectors elementwise
+    and reduce the results by MOD to a result in `[0, MOD)`.
+
+    The values in `<wrs1>` and `<wrs2>` are interpreted as vectors with elements
+    of size depending on `datatype` and are considered as unsigned.
+
+    Each result element is truncated to the datatype size (depending on `<datatype>`) and stored in `<wrd>`.
+    
+    The result is correct if each input element is in `[0, MOD)`.
+
+    Flags are not used or saved.
+  note: |
+    Datatypes `.4D` and `.2Q` are not implemented.
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs1, wrs2, mod]
+  encoding:
+    scheme: bnvm
+    mapping:
+      lane: b0000
+      dt: datatype
+      use_lane: b0
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b100
+      wrd: wrd
+
+- mnemonic: bn.mulvml
+  synopsis: Pseudo-Modulo elementwise vector multiplication with fixed lane
+  operands: *bn-mulvl-operands
+  syntax: *bn-mulvl-syntax
+  glued-ops: true
+  doc: |
+    Multiply each vector element of `<wrs1>` with element `<lane>` of `<wrs2>`
+    and reduce the results by MOD to a result in `[0, MOD)`.
+
+    The values in `<wrs1>` and `<wrs2>` are interpreted as vectors with elements
+    of size depending on `datatype` and are considered as unsigned.
+
+    Each result element is truncated to the datatype size (depending on `<datatype>`) and stored in `<wrd>`.
+    
+    The result is correct if each input element is in `[0, MOD)`.
+
+    Flags are not used or saved.
+  note: |
+    Datatypes `.4D` and `.2Q` are not implemented.
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs1, wrs2, mod]
+  encoding:
+    scheme: bnvm
+    mapping:
+      lane: lane
+      dt: datatype
+      use_lane: b1
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b100
+      wrd: wrd
+
+- mnemonic: bn.trn1
+  synopsis: Interleave vectors even
+  operands: &bn-trn-operands
+    - *bn-vdt
+    - name: wrd
+      doc: Destination WDR
+    - name: wrs1
+      doc: First source WDR
+    - name: wrs2
+  syntax: &bn-trn-syntax
+    <datatype> <wrd>, <wrs1>, <wrs2>
+  glued-ops: true
+  doc: |
+    Even-numbered vector elements from `<wrs1>` are placed into even-numbered elements of `<wrd>`.
+    Even-numbered vector elements from `<wrs2>` are placed into odd-numbered elements of `<wrd>`.
+
+    Resulting in: `wrd[0] <= wrs1[0]` and `wrd[1] <= wrs2[0]` which is repeated for all indeces of wrd.
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs1, wrs2]
+  encoding:
+    scheme: bnvtrn
+    mapping:
+      odd: b0
+      dt: datatype
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b101
+      wrd: wrd
+
+- mnemonic: bn.trn2
+  synopsis: Interleave vectors odd
+  operands: *bn-trn-operands
+  syntax: *bn-trn-syntax
+  glued-ops: true
+  doc: |
+    Odd-numbered vector elements from `<wrs1>` are placed into even-numbered elements of `<wrd>`.
+    Odd-numbered vector elements from `<wrs2>` are placed into odd-numbered elements of `<wrd>`.
+
+    Resulting in: `wrd[0] <= wrs1[1]` and `wrd[1] <= wrs2[1]` which is repeated for all indeces of wrd.
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs1, wrs2]
+  encoding:
+    scheme: bnvtrn
+    mapping:
+      odd: b1
+      dt: datatype
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b101
+      wrd: wrd
+
+- mnemonic: bn.shv
+  synopsis: Bitwise logical shift on individual vector elements
+  operands:
+    - *bn-vdt
+    - name: wrd
+      doc: Name of the destination WDR
+    - name: wrs
+      doc: Name of the source WDR
+    - name: shift_type
+      abbrev: st
+      type: enum(<<, >>)
+      doc: |
+        The direction of the shift applied to elements of `<wrs>`.
+    - name: shift_bits
+      type: uimm
+      doc: Number of bits by which to shift elements in `<wrs>`. Defaults to 0.
+  syntax: <datatype> <wrd>, <wrs> <shift_type> <shift_bits>
+  glued-ops: true
+  doc: |
+    Logically shifts each element of vector `<wrs>` by `<shift_bits>` in `<shift_type>` direction.
+    The element size is given by `<datatype>`.
+
+    Does not update flags.
+  note: |
+    Datatypes `.4D` and `.2Q` are not implemented.
+  errs: []
+  encoding:
+    scheme: bnvsh
+    mapping:
+      shift_type: shift_type
+      dt: datatype
+      shift_bits: shift_bits
+      wrs: wrs
+      funct3: b111
+      wrd: wrd
