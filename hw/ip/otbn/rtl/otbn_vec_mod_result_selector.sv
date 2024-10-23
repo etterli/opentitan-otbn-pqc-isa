@@ -93,7 +93,7 @@ module otbn_vec_mod_result_selector
   /////////////////////
   // TODO: MUX control signals must be blankable? Check this
   // TODO: What and how to blank?
-  logic [NvecProc-1:0] res_sel;
+  logic [NVecProc-1:0] res_sel;
 
   // TODO: Make dynamic depending on VLEN, NVecProc, VChunkLEN
   always_comb begin
@@ -118,6 +118,7 @@ module otbn_vec_mod_result_selector
       VecElen256: begin
         res_sel = {16{decision[15]}};
       end
+      default: res_sel = '0; // TODO: throw error with assertion
     endcase
   end
 
