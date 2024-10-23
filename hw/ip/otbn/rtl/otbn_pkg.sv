@@ -225,6 +225,7 @@ package otbn_pkg;
     InsnOpcodeBignumMisc     = 7'h0B,
     InsnOpcodeBignumArith    = 7'h2B,
     InsnOpcodeBignumMulqacc  = 7'h3B,
+    InsnOpcodeBignumVec      = 7'h5B,
     InsnOpcodeBignumBaseMisc = 7'h7B
   } insn_opcode_e;
 
@@ -242,21 +243,29 @@ package otbn_pkg;
     AluOpBaseSll
   } alu_op_base_e;
 
-  typedef enum logic [3:0] {
+  typedef enum logic [4:0] {
     AluOpBignumAdd,
     AluOpBignumAddc,
     AluOpBignumAddm,
+    AluOpBignumAddv,
+    AluOpBignumAddvm,
 
     AluOpBignumSub,
     AluOpBignumSubb,
     AluOpBignumSubm,
+    AluOpBignumSubv,
+    AluOpBignumSubvm,
 
     AluOpBignumRshi,
+    AluOpBignumShv,
 
     AluOpBignumXor,
     AluOpBignumOr,
     AluOpBignumAnd,
     AluOpBignumNot,
+
+    AluOpBignumTrn1,
+    AluOpBignumTrn2,
 
     AluOpBignumNone
   } alu_op_bignum_e;
@@ -436,9 +445,9 @@ package otbn_pkg;
   } insn_dec_base_t;
 
   typedef struct packed {
-    logic [WdrAw-1:0]        d;           // Destination register
-    logic [WdrAw-1:0]        a;           // First source register
-    logic [WdrAw-1:0]        b;           // Second source register
+    logic [WdrAw-1:0]        d;           // Destination register / vector
+    logic [WdrAw-1:0]        a;           // First source register / vector
+    logic [WdrAw-1:0]        b;           // Second source register / vector
     logic [WLEN-1:0]         i;           // Immediate
 
     logic                    rf_a_indirect; // Indirect lookup, bignum register index a comes from
