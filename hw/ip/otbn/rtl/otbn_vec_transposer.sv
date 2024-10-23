@@ -33,6 +33,64 @@ module otbn_vec_transposer
 
   output logic[VLEN-1:0] result_o
 );
+  typedef struct packed {
+    logic [15:0] chunk;
+  } vector_chunk_t;
+
+  logic [VLEN-1:0] res_trn1, res_trn2;
+
+  vector_chunk_t [15:0] vec_a;
+  vector_chunk_t [15:0] vec_b;
+
+  assign vec_a = operand_a_i;
+  assign vec_b = operand_b_i;
+
+  always_comb begin
+    if (elen_i == VecElen16) begin
+      res_trn1 = {vec_b[14], vec_a[14], vec_b[12], vec_a[12],
+                  vec_b[10], vec_a[10], vec_b[ 8], vec_a[ 8],
+                  vec_b[ 6], vec_a[ 6], vec_b[ 4], vec_a[ 4],
+                  vec_b[ 2], vec_a[ 2], vec_b[ 0], vec_a[ 0]};
+      res_trn2 = {vec_b[15], vec_a[15], vec_b[13], vec_a[13],
+                  vec_b[11], vec_a[11], vec_b[ 9], vec_a[ 9],
+                  vec_b[ 7], vec_a[ 7], vec_b[ 5], vec_a[ 5],
+                  vec_b[ 3], vec_a[ 3], vec_b[ 1], vec_a[ 1]};
+    end else if (elen_i == VecElen32) begin
+      res_trn1 = {vec_b[13], vec_b[12], vec_a[13], vec_a[12],
+                  vec_b[ 9], vec_b[ 8], vec_a[ 9], vec_a[ 8],
+                  vec_b[ 5], vec_b[ 4], vec_a[ 5], vec_a[ 4],
+                  vec_b[ 1], vec_b[ 0], vec_a[ 1], vec_a[ 0]};
+      res_trn2 = {vec_b[15], vec_b[14], vec_a[15], vec_a[14],
+                  vec_b[11], vec_b[10], vec_a[11], vec_a[10],
+                  vec_b[ 7], vec_b[ 6], vec_a[ 7], vec_a[ 6],
+                  vec_b[ 3], vec_b[ 2], vec_a[ 3], vec_a[ 2]};
+    end else if (elen_i == VecElen64) begin
+      res_trn1 = {vec_b[11], vec_b[10], vec_b[ 9], vec_b[ 8],
+                  vec_a[11], vec_a[10], vec_a[ 9], vec_a[ 8],
+                  vec_b[ 3], vec_b[ 2], vec_b[ 1], vec_b[ 0],
+                  vec_a[ 3], vec_a[ 2], vec_a[ 1], vec_a[ 0]};
+      res_trn2 = {vec_b[15], vec_b[14], vec_b[13], vec_b[12],
+                  vec_a[15], vec_a[14], vec_a[13], vec_a[12],
+                  vec_b[ 7], vec_b[ 6], vec_b[ 5], vec_b[ 4],
+                  vec_a[ 7], vec_a[ 6], vec_a[ 5], vec_a[ 4]};
+    end else if (elen_i == VecElen128) begin
+      res_trn1 = {vec_b[ 7], vec_b[ 6], vec_b[ 5], vec_b[ 4],
+                  vec_b[ 3], vec_b[ 2], vec_b[ 1], vec_b[ 0],
+                  vec_a[ 7], vec_a[ 6], vec_a[ 5], vec_a[ 4],
+                  vec_a[ 3], vec_a[ 2], vec_a[ 1], vec_a[ 0]};
+      res_trn2 = {vec_b[15], vec_b[14], vec_b[13], vec_b[12],
+                  vec_b[11], vec_b[10], vec_b[ 9], vec_b[ 8],
+                  vec_a[15], vec_a[14], vec_a[13], vec_a[12],
+                  vec_a[11], vec_a[10], vec_a[ 9], vec_a[ 8]};
+    end else begin
+      // TODO: we do not support 256b -> crash with assertion?
+      res_trn1 = '0;
+      res_trn2 = '0;
+    end
+  result_o = is_trn1_i ? res_trn1 : res_trn2;
+  end
+
+  /* // Alternative solution with loops
   logic [VLEN-1:0] result_trn1_16b;
   logic [VLEN-1:0] result_trn1_32b;
   logic [VLEN-1:0] result_trn1_64b;
@@ -113,4 +171,5 @@ module otbn_vec_transposer
       default: result_o = 'b0;// We do not support the 256b case -> TODO: Crash with assertion?
     endcase
   end
+  */
 endmodule
