@@ -29,7 +29,7 @@ module otbn_vec_adder_tb
   logic [VLEN-1:0]     operand_b;
   logic                operand_b_invert;
   logic [NVecProc-1:0] carries_in;
-  elen_bignum_e    elen;
+  logic [NVecProc-1:0] use_ext_carry;
 
   // Signals from the dut
   logic [VLEN-1:0]     sum;
@@ -44,7 +44,7 @@ module otbn_vec_adder_tb
     .operand_b_i        (operand_b),
     .operand_b_invert_i (operand_b_invert),
     .carries_in_i       (carries_in),
-    .elen_i             (elen),
+    .use_ext_carry_i    (use_ext_carry),
 
     .sum_o              (sum),
     .carries_out_o      (carries_out)
@@ -92,12 +92,13 @@ module otbn_vec_adder_tb
         $error("Could not parse line of golden vector");
       end
 
-      unique case (elen_size)
-        16: elen = VecElen16;
-        32: elen = VecElen32;
-        64: elen = VecElen64;
-        128: elen = VecElen128;
-        256: elen = VecElen256;
+      // generate carry MUX control signals
+      unique case (elen_size) // TODO: Make dynamic depending on VLEN, NVecProc, VChunkLEN
+        16:  use_ext_carry = {16{1'b1}};
+        32:  use_ext_carry = {8{2'b01}};
+        64:  use_ext_carry = {4{4'b0001}};
+        128: use_ext_carry = {2{8'b0000_0001}};
+        256: use_ext_carry = 16'd1;
         default: $error("Invalid ELEN in golden vector");
       endcase
 

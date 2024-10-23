@@ -14,7 +14,14 @@
  * To perform subtraction the input B can inverted and all carries must be set to 1 as:
  *    a - b = a + ~b + 1
  *
- * A0 = A[15:0], A1 = [31:16], ..., A0 = A[255:240], same for B
+ * The carry outs are directly from each adder and are independent of the element length.
+ * Selecting the appropriate carry for each element must be handled by the processing entity.
+ *
+ * Blanking is not applied to the datapath and must be handled in the module using this adder.
+ * However, the carry propagation MUX control signals must be provided from the parent module
+ * as these must be blankable / these signals may not glitch during operation.
+ *
+ * A0 = A[15:0], A1 = [31:16], ..., A15 = A[255:240], same for B
  *
  *  {A15,1}  B15       cin[15]          {A1,1}   B1        cin[1]    {A0,1}  B0         cin[0]
  *      |     |            |               |     |            |        |     |            |
@@ -43,37 +50,11 @@ module otbn_vec_adder
   input  logic [VLEN-1:0]     operand_b_i,
   input  logic                operand_b_invert_i,
   input  logic [NVecProc-1:0] carries_in_i,
-  input  elen_bignum_e    elen_i,
+  input  logic [NVecProc-1:0] use_ext_carry_i, // controls the carry propagation
 
   output logic [VLEN-1:0]     sum_o,
   output logic [NVecProc-1:0] carries_out_o
 );
-  /////////////////////////
-  // Carry Chain control //
-  /////////////////////////
-  // Define the carry handling MUX controls depending on ELEN. A bit for each MUX.
-  // If set: Select carry from previous stage. Else use the external carry.
-  // The adder 0 always takes the external carry.
-  logic [NVecProc-1:0] use_external_carry;
-
-  always_comb begin
-    unique case (elen_i) // TODO: make dynamic depending on VLEN, NVecProc, VChunkLEN
-      VecElen16:  use_external_carry = {16{1'b1}};
-      VecElen32:  use_external_carry = {8{2'b01}};
-      VecElen64:  use_external_carry = {4{4'b0001}};
-      VecElen128: use_external_carry = {2{8'b0000_0001}};
-      VecElen256: use_external_carry = 16'1;
-      default: use_external_carry = 16'0; // TODO: Throw error -> Use assert
-    endcase
-  end
-
-  // TODO: blank & ff use_external_carry in predec stage
-  // Alternatively use primbuf to emulate blanking FF. This approximately represents the required
-  // blanking area size during synthesis.
-
-  ////////////
-  // Adders //
-  ////////////
   logic [NVecProc-1:0][VChunkLEN+1:0] adders_res;
   logic [NVecProc-1:0]                adders_carry_out;
 
@@ -87,7 +68,7 @@ module otbn_vec_adder
 
     // Select the carry in depending on the ELEN. Take previous stage or external carry
     assign prev_carry_out = i_adder == 0 ? carries_in_i[0] : adders_carry_out[i_adder - 1];
-    assign carry_in = use_external_carry[i_adder] ? carries_in_i[i_adder] : prev_carry_out;
+    assign carry_in = use_ext_carry_i[i_adder] ? carries_in_i[i_adder] : prev_carry_out;
 
     // Extract and preprocess the operands
     assign op_a = operand_a_i[i_adder*VChunkLEN+:VChunkLEN];
