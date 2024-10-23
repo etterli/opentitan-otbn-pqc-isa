@@ -1,0 +1,17 @@
++incdir+../../prim/rtl
++incdir+../../otp_ctrl/rtl
++incdir+../../lc_ctrl/rtl
+
+# Dependencies for otbn_pkg.sv
+../../prim/rtl/prim_util_pkg.sv
+../../prim/rtl/prim_mubi_pkg.sv
+../../lc_ctrl/rtl/lc_ctrl_reg_pkg.sv
+../../lc_ctrl/rtl/lc_ctrl_state_pkg.sv
+../../lc_ctrl/rtl/lc_ctrl_pkg.sv
+../../otp_ctrl/rtl/otp_ctrl_reg_pkg.sv
+../../otp_ctrl/rtl/otp_ctrl_pkg.sv
+../../prim/rtl/prim_secded_pkg.sv
+
+../rtl/otbn_pkg.sv
+
+../rtl/otbn_vec_adder.sv
