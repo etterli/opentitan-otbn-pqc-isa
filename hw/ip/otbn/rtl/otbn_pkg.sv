@@ -53,6 +53,15 @@ package otbn_pkg;
   // _DmemScratchSizeBytes in util/shared/mem_layout.py
   parameter int DmemScratchSizeByte = 1024;
 
+  // Width of vector, in bits
+  parameter int VLEN = WLEN;
+
+  // Width of vector chunk we operate on, in bits
+  parameter int VChunkLEN = 16;
+
+  // Number of vector chunk processing elements
+  parameter int NVecProc = VLEN / VChunkLEN;
+
   // Toplevel constants ============================================================================
 
   parameter int AlertFatal = 0;
@@ -294,6 +303,18 @@ package otbn_pkg;
     ShamtSelBignumS,
     ShamtSelBignumZero
   } shamt_sel_bignum_e;
+
+  // Vector element length type for bignum vec ISA
+  // The ISA forsees only 4 types (16 to 128 bits). However, some regular and
+  // vectorized instructions share the hardware and thus we need a 256b type
+  // to signal "regular" 256b operation. See for example AluOpBignumAddm.
+  typedef enum logic [2:0] {
+    VecElen16  = 3'h0,
+    VecElen32  = 3'h1,
+    VecElen64  = 3'h2,
+    VecElen128 = 3'h3,
+    VecElen256 = 3'h4
+  } elen_bignum_e;
 
   // Regfile write data selection
   typedef enum logic [2:0] {
