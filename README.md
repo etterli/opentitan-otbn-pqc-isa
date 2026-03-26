@@ -1,6 +1,8 @@
 # OpenTitan - Design and optimization of PQC ISA extension for OTBN
 This repository is the work of a semester project at ETH Zürich, with the goal of consolidating existing work about efficient PQC implementations and proposing and implementing an efficient ISA SIMD extension such that lattice-based cryptography can be executed efficiently on the OpenTitan Big Number accelerator.
 
+> This work has now been upstreamed into the official OpenTitan repo! See [lowRISC/opentitan#29344](https://github.com/lowRISC/opentitan/pull/29344) and [lowRISC/opentitan#29395](https://github.com/lowRISC/opentitan/pull/29395).
+
 ![OpenTitan logo](https://docs.opentitan.org/doc/opentitan-logo.png)
 
 ## About the project
